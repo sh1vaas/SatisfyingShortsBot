@@ -7,7 +7,8 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def generate_prompt():
-    prompt = "Give me a satisfying idea for YouTube Shorts. Example: jelly cutting, soap carving, bottle breaking, etc."
+    # UPDATED: This new prompt asks for a general quote or message for any type of video.
+    prompt = "Generate a short, captivating piece of text for a YouTube Short voiceover. It can be a thought-provoking quote, a deep question, or a brief, inspiring message. The tone should be calm, motivational, or mysterious. The text must be very general so it can be paired with any random video clip (nature, space, weather, etc.). Example: 'Find the beauty in the small moments; they are what make a life.'"
 
     if not GEMINI_API_KEY:
         print("⚠️ GEMINI_API_KEY not found. Ensure it is set in your environment variables.")
@@ -15,7 +16,6 @@ def generate_prompt():
 
     headers = {"Content-Type": "application/json"}
     
-    # UPDATED: Changed model to 'gemini-1.5-flash-latest' for the newest version
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
     try:
@@ -24,11 +24,10 @@ def generate_prompt():
             headers=headers,
             json={"contents": [{"parts": [{"text": prompt}]}]}
         )
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
 
         data = response.json()
         
-        # Extract text from the Gemini API format
         idea = data["candidates"][0]["content"]["parts"][0]["text"]
         
         print("✅ Idea:", idea)
