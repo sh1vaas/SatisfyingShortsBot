@@ -15,8 +15,8 @@ def generate_prompt():
 
     headers = {"Content-Type": "application/json"}
     
-    # UPDATED: Changed model from 'gemini-pro' to 'gemini-1.0-pro'
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={GEMINI_API_KEY}"
+    # UPDATED: Changed model to 'gemini-1.5-flash-latest' for the newest version
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(
