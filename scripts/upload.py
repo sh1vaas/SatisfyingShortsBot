@@ -2,65 +2,78 @@
 
 import os
 import json
-from google_auth_oauthlib.flow import InstalledAppFlow
+import google.oauth2.credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+def get_youtube_service():
+    """
+    Builds the YouTube service object from environment variables.
+    This function is designed for a non-interactive server environment.
+    """
+    # Get credentials from environment variables
+    client_secret_json_str = os.getenv("CLIENT_SECRET_JSON")
+    token_json_str = os.getenv("GOOGLE_TOKEN_JSON")
+
+    if not client_secret_json_str or not token_json_str:
+        raise ValueError("❌ Missing CLIENT_SECRET_JSON or GOOGLE_TOKEN_JSON environment variables.")
+
+    # Load the credentials from the JSON strings
+    client_config = json.loads(client_secret_json_str)
+    token_info = json.loads(token_json_str)
+
+    # Create credentials object
+    credentials = google.oauth2.credentials.Credentials.from_authorized_user_info(
+        token_info,
+        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    )
+
+    # If the token is expired, refresh it.
+    # The client_id, client_secret, and refresh_token are needed for this.
+    if credentials.expired and credentials.refresh_token:
+        credentials.client_id = client_config["installed"]["client_id"]
+        credentials.client_secret = client_config["installed"]["client_secret"]
+        # The refresh() method is implicitly called when making an API request if the token is expired.
+        # We build the service to ensure the credentials are valid.
+    
+    return build("youtube", "v3", credentials=credentials)
 
 
 def upload_video(video_path, title, description):
     print("🎬 Starting upload to YouTube...")
 
-    # Load YouTube OAuth client secret from environment variable
-    client_secret_raw = os.getenv("CLIENT_SECRET")
-    if not client_secret_raw:
-        raise RuntimeError("❌ CLIENT_SECRET environment variable not found.")
+    try:
+        youtube = get_youtube_service()
+        print("✅ Authentication successful.")
 
-    # Save environment JSON string to a temporary file
-    temp_secret_filename = "temp_client_secret.json"
-    with open(temp_secret_filename, "w") as f:
-        f.write(client_secret_raw)
-
-    # Define API scopes
-    SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-
-    # Start OAuth flow
-    flow = InstalledAppFlow.from_client_secrets_file(temp_secret_filename, SCOPES)
-    credentials = flow.run_local_server(port=8080)
-
-    youtube = build("youtube", "v3", credentials=credentials)
-    print("✅ Authentication successful.")
-
-    # Create video metadata
-    request_body = {
-        "snippet": {
-            "title": title,
-            "description": description,
-            "tags": ["shorts", "satisfying", "relaxing"],
-            "categoryId": "22"  # People & Blogs
-        },
-        "status": {
-            "privacyStatus": "public",  # or "unlisted"/"private"
-            "selfDeclaredMadeForKids": False
+        request_body = {
+            "snippet": {
+                "title": title,
+                "description": description,
+                "tags": ["shorts", "satisfying", "relaxing", "ai"],
+                "categoryId": "22"  # People & Blogs
+            },
+            "status": {
+                "privacyStatus": "public",
+                "selfDeclaredMadeForKids": False
+            }
         }
-    }
 
-    # Prepare the actual file to upload
-    media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
+        media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
 
-    # Upload the video
-    print("⬆️ Uploading video:", video_path)
-    request = youtube.videos().insert(
-        part="snippet,status",
-        body=request_body,
-        media_body=media
-    )
+        print(f"⬆️ Uploading video: {video_path}")
+        request = youtube.videos().insert(
+            part="snippet,status",
+            body=request_body,
+            media_body=media
+        )
 
-    response = request.execute()
+        response = request.execute()
+        video_id = response.get("id")
 
-    # Clean up temp file
-    os.remove(temp_secret_filename)
+        print("🎉 Video uploaded successfully!")
+        print(f"▶️ Watch here: https://www.youtube.com/watch?v={video_id}")
 
-    # Output uploaded video details
-    video_id = response.get("id")
-    print(f"🎉 Video uploaded successfully!")
-    print(f"▶️ Watch here: https://www.youtube.com/watch?v={video_id}")
+    except Exception as e:
+        print(f"❌ An error occurred during the upload process: {e}")
+        raise

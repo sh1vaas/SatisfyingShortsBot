@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -8,43 +9,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def generate_prompt():
     prompt = "Give me a satisfying idea for YouTube Shorts. Example: jelly cutting, soap carving, bottle breaking, etc."
 
-    if not GEMINI_API_KEY:  # Check again for Render deployment
-        print("⚠️ GEMINI_API_KEY not found. Check Render environment variables.")
+    if not GEMINI_API_KEY:
+        print("⚠️ GEMINI_API_KEY not found. Ensure it is set in your environment variables.")
         return None
 
-    headers = {
-       "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(
-            "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText",  # Check correct endpoint
+            api_url,
             headers=headers,
-            params={"key": GEMINI_API_KEY},
-            json={
-              "prompt": {
-                "text": prompt
-              },
-              "temperature": 0.7 # Example setting
-            }
+            json={"contents": [{"parts": [{"text": prompt}]}]}
         )
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
         data = response.json()
-
-        # For debugging: print the whole JSON response
-        print("Gemini Response:", json.dumps(data, indent=2))
-
-        # Handle different Gemini response formats
-        if "candidates" in data:
-            idea = data["candidates"][0]["content"]["parts"][0]["text"]
-        elif "results" in data:
-            idea = data["results"][0]["text"]
-        else:
-            print("❌ Unexpected API response format:")
-            print(json.dumps(data, indent=2))
-            return None
-
+        
+        # Extract text from the new Gemini API format
+        idea = data["candidates"][0]["content"]["parts"][0]["text"]
+        
         print("✅ Idea:", idea)
         return idea.strip()
 
@@ -53,5 +37,5 @@ def generate_prompt():
         return None
     except (KeyError, IndexError) as e:
         print(f"❌ JSON Parsing Error: {e}")
-        print("Response:", response.text) # examine full response
+        print("Response received from API:", json.dumps(data, indent=2))
         return None
