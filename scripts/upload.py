@@ -1,31 +1,28 @@
+# scripts/upload.py
 import os
+import json
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from datetime import datetime
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+def get_youtube_client():
+    # Get client secret from environment
+    client_secret_str = os.getenv("CLIENT_SECRET")
+    
+    if not client_secret_str:
+        raise ValueError("CLIENT_SECRET environment variable not found!")
 
-def authenticate():
-    flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-    credentials = flow.run_local_server()
-    return build("youtube", "v3", credentials=credentials)
+    # Write to temporary file (required by Google OAuth)
+    with open("temp_client_secret.json", "w") as f:
+        f.write(client_secret_str)
 
-def upload(file_path, title, description):
-    youtube = authenticate()
-    request = youtube.videos().insert(
-        part="snippet,status",
-        body={
-            "snippet": {
-                "title": title,
-                "description": description,
-                "tags": ["satisfying", "shorts", "asmr"],
-                "categoryId": "22"
-            },
-            "status": {
-                "privacyStatus": "public"
-            }
-        },
-        media_body=file_path
+    # Initialize YouTube client
+    flow = InstalledAppFlow.from_client_secrets_file(
+        "temp_client_secret.json", 
+        ["https://www.googleapis.com/auth/youtube.upload"]
     )
-    response = request.execute()
-    print("Uploaded to YouTube:", response['id'])
+    credentials = flow.run_local_server(port=8080)
+    
+    # Clean up temporary file
+    os.remove("temp_client_secret.json")
+    
+    return build("youtube", "v3", credentials=credentials)
