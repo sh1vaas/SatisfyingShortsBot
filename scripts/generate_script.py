@@ -14,7 +14,9 @@ def generate_prompt():
         return None
 
     headers = {"Content-Type": "application/json"}
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+    
+    # UPDATED: Changed model from 'gemini-pro' to 'gemini-1.0-pro'
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(
@@ -26,7 +28,7 @@ def generate_prompt():
 
         data = response.json()
         
-        # Extract text from the new Gemini API format
+        # Extract text from the Gemini API format
         idea = data["candidates"][0]["content"]["parts"][0]["text"]
         
         print("✅ Idea:", idea)
