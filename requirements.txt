@@ -1,6 +1,8 @@
-google-api-python-client
-google-auth-oauthlib
+python-dotenv
 requests
-dotenv
-openai
 ffmpeg-python
+google-auth-oauthlib
+google-api-python-client
+google-auth
+gtts
+APScheduler
