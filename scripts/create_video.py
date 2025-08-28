@@ -31,12 +31,11 @@ def create_video(video_paths, audio_path):
     input_audio = ffmpeg.input(audio_path)
 
     # Combine the 15s video with the ~15s audio.
-    # The '-shortest' flag will trim the output to the length of the shorter stream,
-    # ensuring a perfect match if the audio is slightly off 15s.
+    # The 'shortest' flag will trim the output to the length of the shorter stream.
     ffmpeg.output(
         concatenated_video,
         input_audio,
-        out_file,
+        filename=out_file,  # <-- THIS IS THE FIX: Explicitly name the argument
         vcodec='libx264',
         acodec='aac',
         shortest=True
