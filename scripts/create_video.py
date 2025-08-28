@@ -4,13 +4,18 @@ import os
 import ffmpeg
 from datetime import datetime
 
-def create_video(video_paths, music_path, total_duration=15):
+def create_video(video_paths, audio_path):
+    """
+    Trims and combines two videos, then combines them with the full-length audio track.
+    """
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     out_file = os.path.join(output_dir, f"short_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
 
+    total_duration = 15
     clip_duration = total_duration / len(video_paths)
 
+    # Process and concatenate video clips
     input_clips = []
     for path in video_paths:
         clip = (
@@ -20,19 +25,21 @@ def create_video(video_paths, music_path, total_duration=15):
             .filter('scale', '720', '1280')
         )
         input_clips.append(clip)
-
     concatenated_video = ffmpeg.concat(*input_clips, v=1, a=0)
-    input_music = ffmpeg.input(music_path)
 
-    # Combine the final stitched video with the music and set the exact duration
-    # The audio will be cut to match the video's total duration
+    # Input the full-length audio
+    input_audio = ffmpeg.input(audio_path)
+
+    # Combine the 15s video with the ~15s audio.
+    # The '-shortest' flag will trim the output to the length of the shorter stream,
+    # ensuring a perfect match if the audio is slightly off 15s.
     ffmpeg.output(
         concatenated_video,
-        input_music,
+        input_audio,
         out_file,
         vcodec='libx264',
         acodec='aac',
-        t=total_duration
+        shortest=True
     ).run(overwrite_output=True)
         
     return out_file
