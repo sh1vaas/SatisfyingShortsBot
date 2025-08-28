@@ -3,14 +3,14 @@
 import os
 from scripts.generate_script import generate_content
 from scripts.text_to_speech import make_voice
-from scripts.fetch_video import get_pexels_video
+from scripts.fetch_video import get_pexels_videos # <-- Renamed import
 from scripts.create_video import create_video
 from scripts.upload import upload_video
 
 def run_bot():
     print("🎯 STARTING AI VIDEO BOT PROCESS")
 
-    # STEP 1: Generate the full content package (query, title, desc, voiceover)
+    # STEP 1: Generate the full content package
     content = generate_content()
     if not content:
         print("❌ Content generation failed. Stopping.")
@@ -21,18 +21,19 @@ def run_bot():
     video_description = content['description']
     spoken_text = content['spoken_text']
 
-    # STEP 2: Fetch background video from Pexels
-    print(f"🎞️ Fetching video for '{search_query}' from Pexels...")
-    video_info = get_pexels_video(search_query)
-    if not video_info:
+    # STEP 2: Fetch TWO background videos from Pexels
+    print(f"🎞️ Fetching 2 videos for '{search_query}' from Pexels...")
+    video_info_list = get_pexels_videos(search_query) # <-- Using the new function
+    if not video_info_list:
         print("❌ Video fetching failed. Stopping.")
         return
     
-    background_video_path = video_info["path"]
-    photographer = video_info["photographer"]
+    background_video_paths = [info["path"] for info in video_info_list]
+    photographers = [info["photographer"] for info in video_info_list]
     
-    # Add photographer credit to the description
-    full_description = f"{video_description}\n\nVideo by {photographer} from Pexels."
+    # Create the photographer credit string
+    photographer_credit = " & ".join(filter(None, photographers))
+    full_description = f"{video_description}\n\nVideos by {photographer_credit} from Pexels."
 
     # STEP 3: Generate TTS audio
     print("🎙️ Generating TTS voice...")
@@ -41,10 +42,10 @@ def run_bot():
         print("❌ Audio creation failed. Stopping.")
         return
 
-    # STEP 4: Combine video and audio
-    print("🎬 Combining video and audio with FFmpeg...")
+    # STEP 4: Combine videos and audio
+    print("🎬 Combining videos and audio with FFmpeg...")
     try:
-        output_video_path = create_video(background_video_path, audio_path)
+        output_video_path = create_video(background_video_paths, audio_path)
         print(f"✅ Final video created: {output_video_path}")
     except Exception as e:
         print(f"❌ Video creation failed: {e}")
@@ -59,8 +60,9 @@ def run_bot():
     finally:
         # STEP 6: Clean up temporary files
         print("🗑️ Cleaning up temporary files...")
-        if os.path.exists(background_video_path):
-            os.remove(background_video_path)
+        for path in background_video_paths:
+            if os.path.exists(path):
+                os.remove(path)
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
