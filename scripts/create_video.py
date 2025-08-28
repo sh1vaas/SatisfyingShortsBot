@@ -6,7 +6,8 @@ from datetime import datetime
 
 def create_video(video_paths, audio_path):
     """
-    Trims and combines two videos, then combines them with the full-length audio track.
+    Trims, combines two videos, and overlays the audio track, ensuring the
+    final output is exactly 15 seconds long.
     """
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
@@ -30,15 +31,15 @@ def create_video(video_paths, audio_path):
     # Input the full-length audio
     input_audio = ffmpeg.input(audio_path)
 
-    # Combine the 15s video with the ~15s audio.
-    # The 'shortest' flag will trim the output to the length of the shorter stream.
+    # Combine video and audio, and explicitly set the final duration.
+    # This will trim any longer stream (video or audio) to 15s.
     ffmpeg.output(
         concatenated_video,
         input_audio,
-        filename=out_file,  # <-- THIS IS THE FIX: Explicitly name the argument
+        filename=out_file,
         vcodec='libx264',
         acodec='aac',
-        shortest=True
+        t=total_duration  # <-- THE FIX: Enforces a 15-second output duration
     ).run(overwrite_output=True)
         
     return out_file
