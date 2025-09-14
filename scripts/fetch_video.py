@@ -8,38 +8,43 @@ from dotenv import load_dotenv
 load_dotenv()
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
+def get_used_video_ids():
+    """Reads the list of previously used Pexels video IDs from the log file."""
+    try:
+        with open("used_videos.log", "r") as f:
+            return [line.strip() for line in f]
+    except FileNotFoundError:
+        return []
+
 def get_pexels_videos(query):
-    """
-    Searches for and downloads TWO unique videos from Pexels.
-    Returns a list of dictionaries with local paths and photographer info.
-    """
     if not PEXELS_API_KEY:
         print("⚠️ PEXELS_API_KEY not found.")
         return None
 
+    used_ids = get_used_video_ids()
     headers = {"Authorization": PEXELS_API_KEY}
-    params = {
-        "query": query,
-        "orientation": "portrait",
-        "per_page": 40  # Request more results to ensure variety
-    }
+    params = {"query": query, "orientation": "portrait", "per_page": 80}
     api_url = "https://api.pexels.com/videos/search"
     
     try:
         response = requests.get(api_url, headers=headers, params=params)
         response.raise_for_status()
         
-        videos = response.json().get("videos", [])
-        if len(videos) < 2:
-            print(f"❌ Not enough videos found for query '{query}' to combine two.")
+        all_videos = response.json().get("videos", [])
+        # Filter out videos that have already been used
+        fresh_videos = [v for v in all_videos if str(v['id']) not in used_ids]
+        
+        if len(fresh_videos) < 2:
+            print(f"❌ Not enough fresh (unused) videos found for query '{query}'.")
             return None
 
-        # Pick TWO unique random videos from the search results
-        video_selection = random.sample(videos, 2)
+        video_selection = random.sample(fresh_videos, 2)
         downloaded_videos = []
         
         for i, video_data in enumerate(video_selection):
+            # ... (The rest of the downloading logic is the same) ...
             photographer_name = video_data.get("user", {}).get("name")
+            video_id = video_data.get("id") # Get the video ID to log it later
             video_url = None
             
             for file in video_data.get("video_files", []):
@@ -50,11 +55,9 @@ def get_pexels_videos(query):
             if not video_url and video_data.get("video_files"):
                 video_url = video_data["video_files"][0].get("link")
             
-            if not video_url:
-                print(f"❌ Could not find a video link for one of the selections. Skipping.")
-                continue
+            if not video_url: continue
             
-            print(f"⬇️ Downloading video {i+1}/2 from Pexels...")
+            print(f"⬇️ Downloading video {i+1}/2 from Pexels (ID: {video_id})...")
             video_response = requests.get(video_url)
             video_response.raise_for_status()
             
@@ -65,7 +68,7 @@ def get_pexels_videos(query):
             with open(video_path, "wb") as f:
                 f.write(video_response.content)
             
-            downloaded_videos.append({"path": video_path, "photographer": photographer_name})
+            downloaded_videos.append({"path": video_path, "photographer": photographer_name, "id": str(video_id)})
             
         if len(downloaded_videos) < 2:
             print("❌ Failed to download two separate videos.")

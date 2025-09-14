@@ -9,26 +9,41 @@ from dotenv import load_dotenv
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+def get_used_prompts():
+    """Reads the list of previously used prompts from the log file."""
+    try:
+        with open("used_prompts.log", "r", encoding="utf-8") as f:
+            # Return the last 50 prompts to keep the context for the AI manageable
+            return f.read().splitlines()[-50:]
+    except FileNotFoundError:
+        return []
+
 def generate_content():
     theme = random.choice(["Nature", "Space"])
     print(f"🧠 Chosen Theme for the day: {theme}")
+    
+    used_prompts = get_used_prompts()
+    avoidance_instruction = ""
+    if used_prompts:
+        avoidance_instruction = "Crucially, the 'spoken_text' MUST be unique and not similar to any of these previously used texts:\n" + "\n".join(used_prompts)
 
     prompt = f"""
     You are an expert YouTube SEO content strategist. Your task is to generate a viral content package for a 15-second YouTube Short about the theme '{theme}'.
     Provide the output in a clean JSON format with four keys: "search_query", "title", "description", and "spoken_text".
 
     1. "search_query": A simple, 2-3 word search term for the Pexels video API.
-       - For Nature: 'forest waterfall', 'ocean waves', 'mountain sunrise'.
-       - For Space: 'starry night sky', 'milky way galaxy', 'planet earth'.
+       - For Nature: 'nature', 'forest waterfall', 'ocean waves', 'mountain sunrise'.
+       - For Space: 'space', 'starry night sky', 'milky way galaxy', 'planet earth'.
 
-    2. "title": A short, viral, SEO-optimized title for a YouTube Short (under 70 characters).
-       - For Nature: 'The Most Peaceful Place on Earth 🌲✨', 'Is This Planet Earth?! 🤯', 'Wait for the view... 🏔️'.
-       - For Space: 'This is What Space Sounds Like 🚀', 'Feeling Small Yet? 🌌', 'Our Universe is STUNNING ✨'.
+    2. "title": A short, viral, SEO-optimized title (under 70 characters).
+       - For Nature: 'The Most Peaceful Place on Earth 🌲✨', 'Is This Planet Earth?! 🤯'.
+       - For Space: 'This is What Space Sounds Like 🚀', 'Feeling Small Yet? 🌌'.
 
     3. "description": A short, engaging, SEO-optimized description (2-3 sentences). Include 3-4 relevant hashtags.
-       - Example: "Take a moment to breathe and witness the incredible beauty of our universe. What's your favorite thing about space? #Space #Universe #Galaxy #Stars"
 
-    4. "spoken_text": A calming or profound script of approximately 35-40 words. This script, when spoken, should last for about 15 seconds.
+    4. "spoken_text": A calming or profound script of approximately 35-40 words, lasting about 15 seconds when spoken.
+
+    {avoidance_instruction}
     """
     if not GEMINI_API_KEY:
         print("⚠️ GEMINI_API_KEY not found.")
@@ -38,10 +53,9 @@ def generate_content():
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
     try:
+        # Code to call the API and parse the response...
         response = requests.post(
-            api_url,
-            headers=headers,
-            json={"contents": [{"parts": [{"text": prompt}]}]}
+            api_url, headers=headers, json={"contents": [{"parts": [{"text": prompt}]}]}
         )
         response.raise_for_status()
         data = response.json()
@@ -53,6 +67,6 @@ def generate_content():
         print("✅ Content package generated successfully.")
         return content_data
 
-    except (requests.exceptions.RequestException, KeyError, IndexError, json.JSONDecodeError) as e:
+    except Exception as e:
         print(f"❌ Error generating or parsing content: {e}")
         return None
