@@ -1,46 +1,55 @@
-# .github/workflows/upload.yml
+# A descriptive name for the workflow
+name: Daily AI Video Uploader
 
-name: Auto Upload Satisfying Shorts
-
+# Defines when the workflow will run
 on:
-  # Triggers the workflow on pushes to the main branch
-  push:
-    branches: [ main ]
-
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows you to run this workflow manually from the Actions tab in GitHub
   workflow_dispatch:
 
-  # Runs the workflow on a schedule (every day at 12 PM UTC)
+  # Runs automatically on a schedule (every day at 12:00 PM UTC / 5:30 PM IST)
   schedule:
     - cron: '0 12 * * *'
 
+  # Runs automatically when you push code to the 'main' branch (for testing)
+  push:
+    branches: [ main ]
+
+# Defines the series of tasks to be executed
 jobs:
-  upload_job:
+  build_and_upload_job:
+    # Use the latest version of Ubuntu as the operating system
     runs-on: ubuntu-latest
 
+    # Define the sequence of steps for the job
     steps:
-      - name: Checkout repository files
+      # Step 1: Checks out your repository's code so the workflow can access it
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Sets up the Python programming language environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install system dependencies (ffmpeg)
+      # Step 3: Installs FFmpeg, a system tool required for video processing
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
+      # Step 4: Installs all the Python libraries listed in your requirements.txt file
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run AI Video Bot
+      # Step 5: Executes your main Python script to run the bot
+      - name: Run AI Bot
         env:
-          # This is the correct way to access GitHub repository secrets
+          # This securely passes your API keys from GitHub Secrets to your Python script
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           CLIENT_SECRET_JSON: ${{ secrets.CLIENT_SECRET_JSON }}
           GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
         run: python main.py

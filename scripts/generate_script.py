@@ -1,21 +1,40 @@
+# scripts/generate_script.py
+
 import os
 import requests
 import json
+import random
 from dotenv import load_dotenv
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-def generate_prompt():
-    # UPDATED: This new prompt asks for a general quote or message for any type of video.
-    prompt = "Generate a short, captivating piece of text for a YouTube Short voiceover. It can be a thought-provoking quote, a deep question, or a brief, inspiring message. The tone should be calm, motivational, or mysterious. The text must be very general so it can be paired with any random video clip (nature, space, weather, etc.). Example: 'Find the beauty in the small moments; they are what make a life.'"
+def generate_content():
+    theme = random.choice(["Nature", "Space"])
+    print(f"🧠 Chosen Theme for the day: {theme}")
 
+    prompt = f"""
+    You are an expert YouTube SEO content strategist. Your task is to generate a viral content package for a 15-second YouTube Short about the theme '{theme}'.
+    Provide the output in a clean JSON format with four keys: "search_query", "title", "description", and "spoken_text".
+
+    1. "search_query": A simple, 2-3 word search term for the Pexels video API.
+       - For Nature: 'forest waterfall', 'ocean waves', 'mountain sunrise'.
+       - For Space: 'starry night sky', 'milky way galaxy', 'planet earth'.
+
+    2. "title": A short, viral, SEO-optimized title for a YouTube Short (under 70 characters).
+       - For Nature: 'The Most Peaceful Place on Earth 🌲✨', 'Is This Planet Earth?! 🤯', 'Wait for the view... 🏔️'.
+       - For Space: 'This is What Space Sounds Like 🚀', 'Feeling Small Yet? 🌌', 'Our Universe is STUNNING ✨'.
+
+    3. "description": A short, engaging, SEO-optimized description (2-3 sentences). Include 3-4 relevant hashtags.
+       - Example: "Take a moment to breathe and witness the incredible beauty of our universe. What's your favorite thing about space? #Space #Universe #Galaxy #Stars"
+
+    4. "spoken_text": A calming or profound script of approximately 35-40 words. This script, when spoken, should last for about 15 seconds.
+    """
     if not GEMINI_API_KEY:
-        print("⚠️ GEMINI_API_KEY not found. Ensure it is set in your environment variables.")
+        print("⚠️ GEMINI_API_KEY not found.")
         return None
 
     headers = {"Content-Type": "application/json"}
-    
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
     try:
@@ -25,18 +44,15 @@ def generate_prompt():
             json={"contents": [{"parts": [{"text": prompt}]}]}
         )
         response.raise_for_status()
-
         data = response.json()
+        idea_text = data["candidates"][0]["content"]["parts"][0]["text"]
         
-        idea = data["candidates"][0]["content"]["parts"][0]["text"]
+        clean_text = idea_text.strip().replace("```json", "").replace("```", "")
+        content_data = json.loads(clean_text)
         
-        print("✅ Idea:", idea)
-        return idea.strip()
+        print("✅ Content package generated successfully.")
+        return content_data
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ API Request Error: {e}")
-        return None
-    except (KeyError, IndexError) as e:
-        print(f"❌ JSON Parsing Error: {e}")
-        print("Response received from API:", json.dumps(data, indent=2))
+    except (requests.exceptions.RequestException, KeyError, IndexError, json.JSONDecodeError) as e:
+        print(f"❌ Error generating or parsing content: {e}")
         return None

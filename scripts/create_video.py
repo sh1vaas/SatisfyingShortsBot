@@ -1,31 +1,45 @@
+# scripts/create_video.py
+
 import os
 import ffmpeg
-import random
 from datetime import datetime
 
-def create_video(audio=None):
-    bg_folder = "assets/backgrounds/"
-    background = random.choice([
-        f for f in os.listdir(bg_folder) if f.endswith(".mp4")
-    ])
-    background_path = os.path.join(bg_folder, background)
-
-    # Define the output directory
+def create_video(video_paths, audio_path):
+    """
+    Trims, combines two videos, and overlays the audio track, ensuring the
+    final output is exactly 15 seconds long.
+    """
     output_dir = "output"
-    # Ensure the output directory exists before saving the file
     os.makedirs(output_dir, exist_ok=True)
+    out_file = os.path.join(output_dir, f"short_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
 
-    # Define the full path for the output file
-    out_file = os.path.join(output_dir, f"short_{datetime.now().date()}.mp4")
+    total_duration = 15
+    clip_duration = total_duration / len(video_paths)
 
-    input_video = ffmpeg.input(background_path)
-    
-    if audio:
-        input_audio = ffmpeg.input(audio)
-        # Combine video and audio
-        ffmpeg.output(input_video, input_audio, out_file, vcodec='libx264', acodec='aac', shortest=None).run(overwrite_output=True)
-    else:
-        # Just process the video
-        ffmpeg.output(input_video, out_file).run(overwrite_output=True)
+    # Process and concatenate video clips
+    input_clips = []
+    for path in video_paths:
+        clip = (
+            ffmpeg.input(path)
+            .trim(duration=clip_duration)
+            .setpts('PTS-STARTPTS')
+            .filter('scale', '720', '1280')
+        )
+        input_clips.append(clip)
+    concatenated_video = ffmpeg.concat(*input_clips, v=1, a=0)
+
+    # Input the full-length audio
+    input_audio = ffmpeg.input(audio_path)
+
+    # Combine video and audio, and explicitly set the final duration.
+    # This will trim any longer stream (video or audio) to 15s.
+    ffmpeg.output(
+        concatenated_video,
+        input_audio,
+        filename=out_file,
+        vcodec='libx264',
+        acodec='aac',
+        t=total_duration  # <-- THE FIX: Enforces a 15-second output duration
+    ).run(overwrite_output=True)
         
     return out_file
