@@ -23,7 +23,8 @@ def create_video(video_paths, audio_path):
             ffmpeg.input(path)
             .trim(duration=clip_duration)
             .setpts('PTS-STARTPTS')
-            .filter('scale', '720', '1280')
+            .filter('scale', '720', '1280') # Standardize resolution
+            .filter('setsar', '1')          # THE FIX: Standardize pixel aspect ratio
         )
         input_clips.append(clip)
     concatenated_video = ffmpeg.concat(*input_clips, v=1, a=0)
@@ -32,14 +33,13 @@ def create_video(video_paths, audio_path):
     input_audio = ffmpeg.input(audio_path)
 
     # Combine video and audio, and explicitly set the final duration.
-    # This will trim any longer stream (video or audio) to 15s.
     ffmpeg.output(
         concatenated_video,
         input_audio,
         filename=out_file,
         vcodec='libx264',
         acodec='aac',
-        t=total_duration  # <-- THE FIX: Enforces a 15-second output duration
+        t=total_duration
     ).run(overwrite_output=True)
         
     return out_file
