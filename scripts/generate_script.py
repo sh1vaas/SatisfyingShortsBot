@@ -49,8 +49,8 @@ def generate_content():
         return None
 
     headers = {"Content-Type": "application/json"}
-    # THE FIX: Switched from the unstable 'v1beta' to the stable 'v1' API.
-    api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+    # THE FIX: Using the v1 stable API with the 'gemini-1.0-pro' model
+    api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(
