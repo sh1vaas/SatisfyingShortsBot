@@ -49,7 +49,7 @@ def generate_content():
         return None
 
     headers = {"Content-Type": "application/json"}
-    # THE FIX: Using the v1 stable API with the 'gemini-1.0-pro' model
+    # Using the most stable v1 API and model name
     api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={GEMINI_API_KEY}"
 
     try:
@@ -69,3 +69,4 @@ def generate_content():
     except Exception as e:
         print(f"❌ Error generating or parsing content: {e}")
         return None
+
