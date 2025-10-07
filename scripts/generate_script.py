@@ -13,6 +13,7 @@ def get_used_prompts():
     """Reads the list of previously used prompts from the log file."""
     try:
         with open("used_prompts.log", "r", encoding="utf-8") as f:
+            # Return the last 50 prompts to keep the context for the AI manageable
             return f.read().splitlines()[-50:]
     except FileNotFoundError:
         return []
@@ -31,8 +32,8 @@ def generate_content():
     Provide the output in a clean JSON format with four keys: "search_query", "title", "description", and "spoken_text".
 
     1. "search_query": A simple, 2-3 word search term for the Pexels video API.
-       - For Nature: 'forest waterfall', 'ocean waves', 'mountain sunrise'.
-       - For Space: 'starry night sky', 'milky way galaxy', 'planet earth'.
+       - For Nature: 'nature', 'forest waterfall', 'ocean waves', 'mountain sunrise'.
+       - For Space: 'space', 'starry night sky', 'milky way galaxy', 'planet earth'.
 
     2. "title": A short, viral, SEO-optimized title (under 70 characters).
        - For Nature: 'The Most Peaceful Place on Earth 🌲✨', 'Is This Planet Earth?! 🤯'.
@@ -49,10 +50,10 @@ def generate_content():
         return None
 
     headers = {"Content-Type": "application/json"}
-    # Using the most stable v1 API and model name
-    api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={GEMINI_API_KEY}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
     try:
+        # Code to call the API and parse the response...
         response = requests.post(
             api_url, headers=headers, json={"contents": [{"parts": [{"text": prompt}]}]}
         )
@@ -69,4 +70,3 @@ def generate_content():
     except Exception as e:
         print(f"❌ Error generating or parsing content: {e}")
         return None
-
