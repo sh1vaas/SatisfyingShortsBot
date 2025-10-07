@@ -13,7 +13,6 @@ def get_used_prompts():
     """Reads the list of previously used prompts from the log file."""
     try:
         with open("used_prompts.log", "r", encoding="utf-8") as f:
-            # Return the last 50 prompts to keep the context for the AI manageable
             return f.read().splitlines()[-50:]
     except FileNotFoundError:
         return []
@@ -50,8 +49,8 @@ def generate_content():
         return None
 
     headers = {"Content-Type": "application/json"}
-    # THE FIX: Using the stable 'gemini-pro' model name
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+    # THE FIX: Switched from the unstable 'v1beta' to the stable 'v1' API.
+    api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(
